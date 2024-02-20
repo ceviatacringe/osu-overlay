@@ -5,6 +5,7 @@ import requests
 import win32con
 import win32gui
 import win32api
+import pyperclip
 
 mouse_x, mouse_y = 0, 0
 circle_objects = {}
@@ -51,7 +52,7 @@ def remove_circle(circle_id):
 def draw_circle(x, y, object_type):
     if canvas:
         fill_color = 'green' if object_type == 'slider' else 'pink'
-        circle_id = canvas.create_oval(x - 50, y - 50, x + 50, y + 50, fill=fill_color)
+        circle_id = canvas.create_oval(x - 50, y - 50, x + 70, y + 70, fill=fill_color)
         circle_objects[circle_id] = {'x': x, 'y': y}
         #The first int value represents the ms that the circle will disappear after appearing
         scheduled_tasks.append(root.after(400, lambda: remove_circle(circle_id)))
@@ -68,7 +69,8 @@ def check_interaction():
 
 #Parser for beatmap files -> getting hitobject locations and timings
 def load_circle_info():
-    response = requests.get("https://osu.ppy.sh/osu/1961270").text
+    mapID = pyperclip.paste().split("beatmaps/")[1]
+    response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
     circles_info = [(int(int(components[0]) * 2.25 + 373),
                      int(int(components[1]) * 2.25 + 113),
                      int(components[2]),
@@ -77,7 +79,7 @@ def load_circle_info():
                     if len(components) > 2]
     if circles_info:
         initial_delay = circles_info[0][2]
-        circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info][1:]
+        circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
     return circles_info
 
 
@@ -93,7 +95,9 @@ def start_sequence():
     global circles_info
     circles_info = load_circle_info()
     for x, y, delay, object_type in circles_info:
-        scheduled_tasks.append(root.after(max(0, delay), lambda x=x, y=y: draw_circle(x, y, object_type)))
+        # Pass current loop variables as default values to the lambda function
+        scheduled_tasks.append(root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: draw_circle(x, y, object_type)))
+
 
 
 def close_canvas():
