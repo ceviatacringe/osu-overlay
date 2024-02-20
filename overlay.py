@@ -95,12 +95,26 @@ def start_sequence():
 
 
 def close_canvas():
+    global start_flag, root, circle_objects, scheduled_tasks
+
     if root:
         cancel_scheduled_tasks()
-        root.destroy()
-    global start_flag
-    start_flag = False
-    circle_objects.clear()
+        canvas.delete("all")
+        circle_objects.clear()
+
+        # Define the close function inside close_canvas to access root properly
+        def close():
+            global root  # Ensure the global reference is used
+            if root:  # Check root is not None before calling quit and destroy
+                root.quit()
+                root.destroy()
+                root = None  # Reset root to None to ensure proper cleanup
+
+        # Schedule the close function to ensure it runs in the main Tkinter thread
+        root.after(0, close)
+        start_flag = False
+
+
 
 
 def on_key_press(event):
