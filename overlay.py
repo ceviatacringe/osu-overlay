@@ -7,164 +7,130 @@ import win32gui
 import win32api
 import pyperclip
 
-mouse_x, mouse_y = 0, 0
-circle_objects = {}
-canvas = None
-start_flag = False
-root = None
-listener = None
-is_closing = False
-scheduled_tasks = []
+class OsuOverlay:
+    def __init__(self):
+        self.mouse_x, self.mouse_y = 0, 0
+        self.circle_objects = {}
+        self.canvas = None
+        self.start_flag = False
+        self.root = None
+        self.listener = None
+        self.is_closing = False
+        self.scheduled_tasks = []
+        self.circle_removal_delay = 400 #How fast the circles get removed after appearing it not hit by cursor (basically osu AR)
 
+# Make a semi-transparent click-through window.
+    def set_click_through(self, hwnd):
+        style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+        new_style = style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, new_style)
+        win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 90, win32con.LWA_ALPHA)
 
-#Define the canvas
-def set_click_through(hwnd):
-    style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
-    new_style = style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
-    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, new_style)
-    #The fourth int value represents the transparency of the window
-    win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 90, win32con.LWA_ALPHA)
+# So that it doesn't minimize when osu is interacted with
+    def keep_on_top(self):
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.scheduled_tasks.append(self.root.after(100, self.keep_on_top))
 
+    def cancel_scheduled_tasks(self):
+        while self.scheduled_tasks:
+            task_id = self.scheduled_tasks.pop()
+            self.root.after_cancel(task_id)
 
-def keep_on_top():
-    root.lift()
-    root.attributes('-topmost', True)
-    scheduled_tasks.append(root.after(100, keep_on_top))
+    def mouse_move(self, x, y):
+        self.mouse_x, self.mouse_y = x, y
 
+    def remove_circle(self, circle_id):
+        if self.canvas:
+            self.canvas.delete(circle_id)
+            self.circle_objects.pop(circle_id, None)
 
-def cancel_scheduled_tasks():
-    while scheduled_tasks:
-        task_id = scheduled_tasks.pop()
-        root.after_cancel(task_id)
+    def draw_circle(self, x, y, object_type):
+        if self.canvas:
+            fill_color = 'green' if object_type == 'slider' else 'pink'
+            circle_id = self.canvas.create_oval(x - 50, y - 50, x + 70, y + 70, fill=fill_color)
+            self.circle_objects[circle_id] = {'x': x, 'y': y}
+            self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
+# Checks for mouse collision in order to remove circles that have been hit
+    def check_interaction(self):
+        to_remove = [circle_id for circle_id, info in self.circle_objects.items()
+                     if ((self.mouse_x - info['x']) ** 2 + (self.mouse_y - info['y']) ** 2) ** 0.5 < 30]
+        for circle_id in to_remove:
+            self.remove_circle(circle_id)
+        self.scheduled_tasks.append(self.root.after(10, self.check_interaction))
 
-def mouse_move(x, y):
-    global mouse_x, mouse_y
-    mouse_x, mouse_y = x, y
+# Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
+    def load_circle_info(self):
+        mapID = pyperclip.paste().split("beatmaps/")[1]
+        response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
+        circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
+        if circles_info:
+            initial_delay = circles_info[0][2]
+            circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
+        return circles_info
 
+# When the user restarts the map by holding "`"
+    def reset_game(self):
+        self.cancel_scheduled_tasks()
+        self.start_flag = False
+        self.circle_objects.clear()
+        if self.canvas:
+            self.canvas.delete("all")
 
-def remove_circle(circle_id):
-    if canvas:
-        canvas.delete(circle_id)
-        circle_objects.pop(circle_id, None)
+    def start_sequence(self):
+        self.circles_info = self.load_circle_info()
+        for x, y, delay, object_type in self.circles_info:
+            self.scheduled_tasks.append(self.root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: self.draw_circle(x, y, object_type)))
 
+    def close_canvas(self):
+        if self.root and not self.is_closing:
+            self.is_closing = True
+            self.cancel_scheduled_tasks()
+            if self.canvas:
+                self.canvas.delete("all")
+            self.circle_objects.clear()
+            if self.listener:
+                self.listener.stop()
+                self.listener = None
+            def safely_close():
+                if self.root:
+                    self.root.quit()
+                    self.root.destroy()
+                    self.root = None
+                self.is_closing = False
+                self.start_flag = False
+            self.root.after(0, safely_close)
+        elif not self.root:
+            self.is_closing = False
+            self.start_flag = False
 
-def draw_circle(x, y, object_type):
-    if canvas:
-        fill_color = 'green' if object_type == 'slider' else 'pink'
-        circle_id = canvas.create_oval(x - 50, y - 50, x + 70, y + 70, fill=fill_color)
-        circle_objects[circle_id] = {'x': x, 'y': y}
-        #The first int value represents the ms that the circle will disappear after appearing
-        scheduled_tasks.append(root.after(400, lambda: remove_circle(circle_id)))
+    def on_key_press(self, event):
+        if event.name in ['w', 'e'] and not self.start_flag and self.root:
+            print("Starting sequence")
+            self.start_flag = True
+            self.start_sequence()
+        elif event.name == '`' and self.root:
+            print("Resetting game")
+            self.reset_game()
+        elif event.name == 'esc':
+            print("Closing canvas and waiting for reinitialization")
+            self.close_canvas()
 
+    def initialize_script(self):
+        self.root = tk.Tk()
+        self.root.overrideredirect(True)
+        self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
+        self.canvas = tk.Canvas(self.root, bg='black', highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.root.update()
 
-#Checks for cursor collision with the circles, making them disappear
-def check_interaction():
-    to_remove = [circle_id for circle_id, info in circle_objects.items()
-                 if ((mouse_x - info['x']) ** 2 + (mouse_y - info['y']) ** 2) ** 0.5 < 30]
-    for circle_id in to_remove:
-        remove_circle(circle_id)
-    scheduled_tasks.append(root.after(10, check_interaction))
+        self.set_click_through(win32gui.FindWindow(None, self.root.title()))
+        self.keep_on_top()
 
+        self.listener = MouseListener(on_move=self.mouse_move)
+        self.listener.start()
 
-#Parser for beatmap files -> getting hitobject locations and timings
-def load_circle_info():
-    mapID = pyperclip.paste().split("beatmaps/")[1]
-    response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
-    circles_info = [(int(int(components[0]) * 2.25 + 373),
-                     int(int(components[1]) * 2.25 + 113),
-                     int(components[2]),
-                     'slider' if len(components) > 6 else 'circle')
-                    for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1])
-                    if len(components) > 2]
-    if circles_info:
-        initial_delay = circles_info[0][2]
-        circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
-    return circles_info
-
-
-def reset_game():
-    cancel_scheduled_tasks()
-    global start_flag
-    start_flag = False
-    circle_objects.clear()
-    canvas.delete("all")
-
-
-def start_sequence():
-    global circles_info
-    circles_info = load_circle_info()
-    for x, y, delay, object_type in circles_info:
-        # Pass current loop variables as default values to the lambda function
-        scheduled_tasks.append(root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: draw_circle(x, y, object_type)))
-
-
-
-def close_canvas():
-    global start_flag, root, circle_objects, scheduled_tasks, listener, is_closing
-
-    if root and not is_closing:
-        is_closing = True  # Set the flag to prevent re-entry
-
-        cancel_scheduled_tasks()
-        if canvas:
-            canvas.delete("all")
-        circle_objects.clear()
-
-        if listener:
-            listener.stop()
-            listener = None
-
-        # Close the Tkinter window safely
-        def safely_close():
-            global root, is_closing
-            if root:
-                root.quit()
-                root.destroy()
-                root = None
-            is_closing = False  # Reset the flag for next time
-            global start_flag
-            start_flag = False  # Reset start flag for reinitialization
-
-        root.after(0, safely_close)
-
-    elif not root:
-        is_closing = False  # Ensure flags are reset even if root is already none
-        start_flag = False
-
-
-
-
-def on_key_press(event):
-    global start_flag
-    if event.name in ['w', 'e'] and not start_flag and root:
-        print("Starting sequence")
-        start_flag = True
-        start_sequence()
-    elif event.name == '`' and root:
-        print("Resetting game")
-        reset_game()
-    elif event.name == 'esc':
-        print("Closing canvas and waiting for reinitialization")
-        close_canvas()
-
-
-
-def initialize_script():
-    global root, canvas
-    root = tk.Tk()
-    root.overrideredirect(True)
-    root.geometry(f"{root.winfo_screenwidth()}x{root.winfo_screenheight()}+0+0")
-    canvas = tk.Canvas(root, bg='black', highlightthickness=0)
-    canvas.pack(fill=tk.BOTH, expand=True)
-    root.update()
-
-    set_click_through(win32gui.FindWindow(None, root.title()))
-    keep_on_top()
-
-    listener = MouseListener(on_move=mouse_move)
-    listener.start()
-
-    keyboard.on_press(on_key_press)
-    check_interaction()
-    root.mainloop()
+        keyboard.on_press(self.on_key_press)
+        self.check_interaction()
+        self.root.mainloop()
