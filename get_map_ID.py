@@ -22,8 +22,10 @@ def left_click():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)  # Mouse up
 
 
-def get_map_macro():
-    print("Got here")
+def get_map_macro(HOTKEY):
+    print(f"Waiting, press {HOTKEY} to select map...")
+    keyboard.wait(HOTKEY)
+
     #Automatically get the map ID through browser URL
     left_click()
     time.sleep(TIME_TO_SLEEP)
@@ -51,5 +53,5 @@ def get_map_macro():
         print("Map ID found")
     else:
         print("Failed to get beatmap ID\nTrying again...")
-        get_map_macro()
+        get_map_macro(HOTKEY)
 

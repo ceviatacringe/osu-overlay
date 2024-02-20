@@ -11,6 +11,8 @@ circle_objects = {}
 canvas = None
 start_flag = False
 root = None
+listener = None
+is_closing = False
 scheduled_tasks = []
 
 
@@ -95,23 +97,35 @@ def start_sequence():
 
 
 def close_canvas():
-    global start_flag, root, circle_objects, scheduled_tasks
+    global start_flag, root, circle_objects, scheduled_tasks, listener, is_closing
 
-    if root:
+    if root and not is_closing:
+        is_closing = True  # Set the flag to prevent re-entry
+
         cancel_scheduled_tasks()
-        canvas.delete("all")
+        if canvas:
+            canvas.delete("all")
         circle_objects.clear()
 
-        # Define the close function inside close_canvas to access root properly
-        def close():
-            global root  # Ensure the global reference is used
-            if root:  # Check root is not None before calling quit and destroy
+        if listener:
+            listener.stop()
+            listener = None
+
+        # Close the Tkinter window safely
+        def safely_close():
+            global root, is_closing
+            if root:
                 root.quit()
                 root.destroy()
-                root = None  # Reset root to None to ensure proper cleanup
+                root = None
+            is_closing = False  # Reset the flag for next time
+            global start_flag
+            start_flag = False  # Reset start flag for reinitialization
 
-        # Schedule the close function to ensure it runs in the main Tkinter thread
-        root.after(0, close)
+        root.after(0, safely_close)
+
+    elif not root:
+        is_closing = False  # Ensure flags are reset even if root is already none
         start_flag = False
 
 

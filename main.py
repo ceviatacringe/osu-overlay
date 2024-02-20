@@ -1,10 +1,9 @@
 from overlay import initialize_script
 from get_map_ID import get_map_macro
-import keyboard
+
+HOTKEY = 'f4'
 
 if __name__ == "__main__":
     while True:
-        print("Waitin")
-        keyboard.wait('f4')
-        get_map_macro()
+        get_map_macro(HOTKEY)
         initialize_script()
