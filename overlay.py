@@ -6,6 +6,7 @@ import win32con
 import win32gui
 import win32api
 import pyperclip
+import time
 from scan_for_start import scan_for_start
 
 class OsuOverlay:
@@ -140,6 +141,11 @@ class OsuOverlay:
         elif event.name == '`' and self.root:
             print("Resetting game")
             self.reset_game()
+            print("Scanning for first hitobject")
+            time.sleep(0.3)
+            scan_for_start()
+            print("Starting sequence")
+            self.start_sequence()
         elif event.name == 'esc' and self.start_flag == False:
             print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
