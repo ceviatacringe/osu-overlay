@@ -138,14 +138,13 @@ class OsuOverlay:
         if event.name == 'enter' and not self.start_flag and self.root:
             self.circles_info = self.load_circle_info()
             print("Scanning for first hitobject")
-            scan_for_start()
+            scan_for_start(1)
             self.start_flag = True
             self.start_sequence()
         elif event.name == '`' and self.root:
-            print("Resetting game")
             self.reset_game()
-            print("Scanning for first hitobject")
-            scan_for_start()
+            print("Resetting game")
+            scan_for_start(14)
             print("Starting sequence")
             self.start_sequence()
         elif event.name == 'esc':

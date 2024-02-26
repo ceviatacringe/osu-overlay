@@ -18,7 +18,7 @@ def left_click():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)  # Mouse up
 
 
-def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
+def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER):
     print(f"Waiting, press {HOTKEY} to select map...")
     print("Make sure osu is in focus and you have your browser open.")
     keyboard.wait(HOTKEY)
@@ -45,6 +45,11 @@ def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
 
     keyboard.press_and_release('ctrl+w')  # Close the tab
     time.sleep(TIME_TO_SLEEP)
+
+    if BROWSER:
+        windows = pyautogui.getWindowsWithTitle(BROWSER)
+        if windows:
+            windows[0].minimize()
 
     # Bring up osu once finished
     windows = pyautogui.getWindowsWithTitle("osu!")
