@@ -146,7 +146,7 @@ class OsuOverlay:
             scan_for_start()
             print("Starting sequence")
             self.start_sequence()
-        elif event.name == 'esc' and self.start_flag == False:
+        elif event.name == 'esc' and self.start_flag == True:
             print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
 
