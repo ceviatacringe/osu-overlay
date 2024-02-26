@@ -18,7 +18,7 @@ def left_click():
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)  # Mouse up
 
 
-def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
+def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE):
     print(f"Waiting, press {HOTKEY} to select map...")
     print("Make sure osu is in focus and you have your browser open.")
     keyboard.wait(HOTKEY)
@@ -46,6 +46,16 @@ def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
     keyboard.press_and_release('ctrl+w')  # Close the tab
     time.sleep(TIME_TO_SLEEP)
 
+    def minimize(app_name):
+        windows = pyautogui.getWindowsWithTitle(app_name)
+        if windows:
+            window = windows[0]
+            window.minimize()
+
+    # Minimize the browser (optional)
+    if BROWSER_TO_MINIMIZE:
+        minimize(BROWSER_TO_MINIMIZE)
+
     # Bring up osu once finished
     windows = pyautogui.getWindowsWithTitle("osu!")
     if windows:
@@ -57,5 +67,5 @@ def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
         return pyperclip.paste()
     else:
         print("Failed to get beatmap ID\nTrying again...")
-        get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY)
+        get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE)
 
