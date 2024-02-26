@@ -6,6 +6,7 @@ import win32con
 import win32gui
 import win32api
 import pyperclip
+from scan_for_start import scan_for_start
 
 class OsuOverlay:
     def __init__(self):
@@ -60,10 +61,32 @@ class OsuOverlay:
             self.remove_circle(circle_id)
         self.scheduled_tasks.append(self.root.after(10, self.check_interaction))
 
+
+    def get_AR(self, text) -> int:
+        sections = text.split('\n\n')
+        for section in sections:
+            if '[Difficulty]' in section:
+                lines = section.split('\n')
+                for line in lines:
+                    if 'ApproachRate:' in line:
+                        # Extract and return the ApproachRate value
+                        AR = float(line.split(':')[1].strip())
+                        if AR < 5:
+                            preempt = 1200 + 600 * (5 - AR) / 5
+                        if AR == 5:
+                            preempt = 1200
+                        if AR > 5:
+                            preempt = 1200 - 750 * (AR - 5) / 5
+                        return int(preempt)
+
+
 # Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
+# Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
     def load_circle_info(self):
         mapID = pyperclip.paste().split("beatmaps/")[1]
         response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
+        # Set the removal timing to the map approach rate
+        self.circle_removal_delay = self.get_AR(response)
         circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
             initial_delay = circles_info[0][2]
@@ -79,7 +102,6 @@ class OsuOverlay:
             self.canvas.delete("all")
 
     def start_sequence(self):
-        self.circles_info = self.load_circle_info()
         for x, y, delay, object_type in self.circles_info:
             self.scheduled_tasks.append(self.root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: self.draw_circle(x, y, object_type)))
 
@@ -106,14 +128,19 @@ class OsuOverlay:
             self.start_flag = False
 
     def on_key_press(self, event):
-        if event.name in ['w', 'e'] and not self.start_flag and self.root:
+        # Press enter to start the first hitobject scanning (this is also the hotkey to start a map in osu)
+        # Automatic start. Will start at the wrong time if the user hovers over the initial position with their cursor in osu.
+        if event.name == 'enter' and not self.start_flag and self.root:
+            self.circles_info = self.load_circle_info()
+            print("Scanning for first hitobject")
+            scan_for_start()
             print("Starting sequence")
             self.start_flag = True
             self.start_sequence()
         elif event.name == '`' and self.root:
             print("Resetting game")
             self.reset_game()
-        elif event.name == 'esc':
+        elif event.name == 'esc' and self.start_flag == False:
             print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
 
