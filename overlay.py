@@ -142,12 +142,12 @@ class OsuOverlay:
             print("Resetting game")
             self.reset_game()
             print("Scanning for first hitobject")
-            time.sleep(0.3)
             scan_for_start()
             print("Starting sequence")
             self.start_sequence()
-        elif event.name == 'esc' and self.start_flag == True:
-            print("Closing canvas and waiting for reinitialization")
+        elif event.name == 'esc':
+            if self.start_flag == True:
+                print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
 
     def initialize_script(self):
