@@ -6,7 +6,7 @@ import win32con
 import win32gui
 import win32api
 import pyperclip
-import time
+import os
 from scan_for_start import scan_for_start
 
 class OsuOverlay:
@@ -62,6 +62,8 @@ class OsuOverlay:
             self.remove_circle(circle_id)
         self.scheduled_tasks.append(self.root.after(10, self.check_interaction))
 
+    def clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')
 
     def get_AR(self, text) -> int:
         sections = text.split('\n\n')
@@ -103,6 +105,8 @@ class OsuOverlay:
             self.canvas.delete("all")
 
     def start_sequence(self):
+        self.clear_screen()
+        print("Started")
         for x, y, delay, object_type in self.circles_info:
             self.scheduled_tasks.append(self.root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: self.draw_circle(x, y, object_type)))
 
@@ -135,7 +139,6 @@ class OsuOverlay:
             self.circles_info = self.load_circle_info()
             print("Scanning for first hitobject")
             scan_for_start()
-            print("Starting sequence")
             self.start_flag = True
             self.start_sequence()
         elif event.name == '`' and self.root:
@@ -149,6 +152,7 @@ class OsuOverlay:
             if self.start_flag == True:
                 print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
+            self.clear_screen()
 
     def initialize_script(self):
         self.root = tk.Tk()
