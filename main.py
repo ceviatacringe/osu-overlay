@@ -1,16 +1,11 @@
-from overlay import OsuOverlay
+from overlay import initialize_script
 from get_map_ID import get_map_macro
 
 HOTKEY = 'f4'
-TIME_TO_SLEEP = 0.05
+TIME_TO_SLEEP = 0.03
 TAB_LOADING_TIME = 0.2
 
-def main():
-    # Main function to run the application loop
+if __name__ == "__main__":
     while True:
         get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY)
-        overlay = OsuOverlay()
-        overlay.initialize_script()
-
-if __name__ == '__main__':
-    main()
+        initialize_script()
