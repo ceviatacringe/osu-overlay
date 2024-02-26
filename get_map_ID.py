@@ -20,11 +20,18 @@ def left_click():
 
 def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY):
     print(f"Waiting, press {HOTKEY} to select map...")
+    print("Make sure osu is in focus and you have your browser open.")
     keyboard.wait(HOTKEY)
 
-    #Automatically get the map ID through browser URL
+    # Automatically get the map ID through browser URL
+    # Hover over browser map link button in osu
+    return_to = win32api.GetCursorPos()
+    win32api.SetCursorPos((490,178))
+    time.sleep(TIME_TO_SLEEP)
     left_click()
     time.sleep(TIME_TO_SLEEP)
+    # Bring the cursor back to its initial position
+    win32api.SetCursorPos(return_to)
 
     press_key_1()  # Opens the osu map in the website using the osu menu
     pyperclip.copy("")  # Clear the clipboard content
