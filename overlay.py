@@ -90,8 +90,11 @@ class OsuOverlay:
                         elif AR > 5:
                             preempt = 1200 - 750 * (AR - 5) / 5
                         if self.DT:
-                            return int(preempt*(2/3))
-                        return int(preempt)
+                            preempt = int(preempt*(2/3))
+                        if preempt > 300:
+                            return int(preempt)
+                        else:
+                            return(300)
 
 # Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
 # Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
@@ -103,6 +106,9 @@ class OsuOverlay:
         circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
             initial_delay = (circles_info[0][2])
+            # If the map starts with a spinner, adjust delay accordingly (to fix pixel scanning occasionally having the wrong timing)
+            if int((response.split("[HitObjects]")[1].split("\n")[1:-1][0]).count(",")) == 6:
+                initial_delay += 20
             if self.DT and self.HR:
                 circles_info = [(x, 1090-y, int(delay/1.5 - (initial_delay/1.5+20)), object_type) for x, y, delay, object_type in circles_info]
             elif self.DT:
