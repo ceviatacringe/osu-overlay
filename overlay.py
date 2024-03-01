@@ -10,7 +10,9 @@ import os
 from scan_for_start import scan_for_start
 
 class OsuOverlay:
-    def __init__(self):
+    def __init__(self, DT, HR):
+        self.DT = DT
+        self.HR = HR
         self.mouse_x, self.mouse_y = 0, 0
         self.circle_objects = {}
         self.canvas = None
@@ -19,7 +21,7 @@ class OsuOverlay:
         self.listener = None
         self.is_closing = False
         self.scheduled_tasks = []
-        self.circle_removal_delay = 400 #How fast the circles get removed after appearing it not hit by cursor (basically osu AR)
+        self.circle_removal_delay = 400 # How fast the circle will disappear after appearing this gets changed by the AR scan automatically
 
 # Make a semi-transparent click-through window.
     def set_click_through(self, hwnd):
@@ -74,14 +76,20 @@ class OsuOverlay:
                     if 'ApproachRate:' in line:
                         # Extract and return the ApproachRate value
                         AR = float(line.split(':')[1].strip())
+                        if self.HR:
+                            if not self.DT:
+                                AR = AR * 1.4
+                                if AR > 10:
+                                    AR = 10
                         if AR < 5:
                             preempt = 1200 + 600 * (5 - AR) / 5
-                        if AR == 5:
+                        elif AR == 5:
                             preempt = 1200
-                        if AR > 5:
+                        elif AR > 5:
                             preempt = 1200 - 750 * (AR - 5) / 5
+                        if self.DT:
+                            return int(preempt*(2/3))
                         return int(preempt)
-
 
 # Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
 # Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
@@ -92,8 +100,13 @@ class OsuOverlay:
         self.circle_removal_delay = self.get_AR(response)
         circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
-            initial_delay = circles_info[0][2]
-            circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
+            initial_delay = (circles_info[0][2])
+            if self.DT:
+                circles_info = [(x, y, int(delay/1.5 - (initial_delay/1.5+20)), object_type) for x, y, delay, object_type in circles_info]
+            elif self.HR:
+                circles_info = [(x, 1090-y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
+            else:
+                circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
         return circles_info
 
 # When the user restarts the map by holding "`"
@@ -138,13 +151,14 @@ class OsuOverlay:
         if event.name == 'enter' and not self.start_flag and self.root:
             self.circles_info = self.load_circle_info()
             print("Scanning for first hitobject")
-            scan_for_start(1)
+            scan_for_start(1, self.HR)
             self.start_flag = True
             self.start_sequence()
         elif event.name == '`' and self.root:
             self.reset_game()
             print("Resetting game")
-            scan_for_start(14)
+            # Sometimes the map doesn't fully fade to black on resets, added pixel range to correct that
+            scan_for_start(31, self.HR)
             print("Starting sequence")
             self.start_sequence()
         elif event.name == 'esc':

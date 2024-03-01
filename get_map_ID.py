@@ -62,5 +62,5 @@ def get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER):
         return pyperclip.paste()
     else:
         print("Failed to get beatmap ID\nTrying again...")
-        get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY)
+        get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER)
 

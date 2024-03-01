@@ -3,11 +3,14 @@ import pyperclip
 import requests
 
 
-def scan_for_start(pixeladd: int):
+def scan_for_start(pixeladd: int, HR):
     # Get first circle position
     mapID = pyperclip.paste().split("beatmaps/")[1]
     response = (requests.get(f"https://osu.ppy.sh/osu/{mapID}").text).split("[HitObjects]")[1].split("\n")[1:-1]
-    start_pos = (int(int(response[0].split(',')[0]) * 2.25 + 373), int(int(response[0].split(',')[1]) * 2.25 + 113))
+    if HR:
+        start_pos = (int(int(response[0].split(',')[0]) * 2.25 + 373), 1090-int(int(response[0].split(',')[1]) * 2.25 + 113))
+    else:
+        start_pos = (int(int(response[0].split(',')[0]) * 2.25 + 373), int(int(response[0].split(',')[1]) * 2.25 + 113))
     # Scan the first pixel and see it if changes, meaning that it appeared on screen
     # and the map started, now we can load the rest of the script with the right timing
     while True:
