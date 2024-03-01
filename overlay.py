@@ -77,19 +77,21 @@ class OsuOverlay:
                         # Extract and return the ApproachRate value
                         AR = float(line.split(':')[1].strip())
                         if self.HR:
-                            if not self.DT:
-                                AR = AR * 1.4
-                                if AR > 10:
-                                    AR = 10
+                            AR = AR * 1.4
+                            if AR > 10:
+                                AR = 10
                         if AR < 5:
                             preempt = 1200 + 600 * (5 - AR) / 5
-                        elif AR == 5:
+                        if AR == 5:
                             preempt = 1200
-                        elif AR > 5:
+                        if AR > 5:
                             preempt = 1200 - 750 * (AR - 5) / 5
                         if self.DT:
-                            return int(preempt*(2/3))
-                        return int(preempt)
+                            preempt =  int(preempt*(2/3))
+                        if preempt > 300:
+                            return int(preempt)
+                        else:
+                            return(300)
 
 # Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
 # Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
@@ -101,8 +103,13 @@ class OsuOverlay:
         circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
             initial_delay = (circles_info[0][2])
-            if self.DT:
-                circles_info = [(x, y, int(delay/1.5 - (initial_delay/1.5+20)), object_type) for x, y, delay, object_type in circles_info]
+            # If the map starts with a spinner the pixel scanning is delayed, this accounts for it
+            if int(str(response.split("[HitObjects]")[1].split("\n")[1:-1][0]).count(",")) == 6:
+                initial_delay += 70
+            if self.DT and self.HR:
+                circles_info = [(x, 1090-y, int(delay/1.5 - (initial_delay/1.5)), object_type) for x, y, delay, object_type in circles_info]
+            elif self.DT:
+                circles_info = [(x, y, int(delay/1.5 - (initial_delay/1.5)), object_type) for x, y, delay, object_type in circles_info]
             elif self.HR:
                 circles_info = [(x, 1090-y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
             else:
