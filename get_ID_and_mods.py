@@ -40,7 +40,7 @@ class GetStart:
         print("Mod selection opened")
         print("Use keys to select mods (D,F,H) -> DT HD FL for example")
         print("Once you're done exit with esc, 2, for F1")
-        time.sleep(0.05)
+        time.sleep(0.03)
         self.press_key_1()
         while True:
             if self.check_focus():
@@ -58,7 +58,8 @@ class GetStart:
                         self.mods += " HD "
                     elif event.name == 'g':
                         self.mods += " FL "
-                    if event.name == "f1" or event.name == 'esc' or event.name == '2':
+                    elif event.name == "f1" or event.name == 'esc' or event.name == '2':
+                        self.clear_screen()
                         return self.mods
 
     def get_map_macro(self):
@@ -109,8 +110,10 @@ class GetStart:
                 event = keyboard.read_event()
                 if event.event_type == keyboard.KEY_DOWN:
                     if event.name == 'f1':
-                        mods = self.mod_selection()
-                        print(mods)
+                        self.mods = self.mod_selection()
+                        print(f"{self.hotkey.upper()} to start")
+                        print("F1 to change mods\n")
+                        print("Make sure osu is in focus and you have your browser open.")
                     elif event.name == 'f4':
                         print("Starting")
                         self.get_map_macro()
