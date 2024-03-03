@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.font as tkFont
 from pynput.mouse import Listener as MouseListener
 import keyboard
 import requests
@@ -29,7 +30,7 @@ class OsuOverlay:
         # Both of these will be changed based on map values automatically
         self.circle_removal_delay = 400
         self.circle_size = 4
-        
+
 # Make a semi-transparent click-through window.
     def set_click_through(self, hwnd):
         style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
@@ -77,6 +78,32 @@ class OsuOverlay:
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+
+
+    def draw_mods(self, x_offset=35, y_offset=40, size=40, color='white', duration=2500):
+        if self.canvas:
+            # Define the mods
+            modlist = ""
+            if self.DT:
+                modlist = modlist + "DT "
+            if self.HR:
+                modlist = modlist + "HR "
+            if self.EZ:
+                modlist = modlist + "EZ "
+
+            # Create a Tkinter font
+            font = tkFont.Font(size=size)
+            canvas_width = self.canvas.winfo_width()
+            canvas_height = self.canvas.winfo_height()
+            # Calculate text position (top right corner)
+            text_x = canvas_width - x_offset
+            text_y = y_offset
+            # Create text on the canvas
+            text_id = self.canvas.create_text(text_x, text_y, text=modlist, anchor="ne", fill=color, font=font)
+            # Schedule the text to be removed after 'duration' milliseconds
+            self.root.after(duration, lambda: self.canvas.delete(text_id))
+        
+
 
     # Basic parser for beatmap stats
     def get_stats(self, text) -> int:
@@ -198,6 +225,7 @@ class OsuOverlay:
             # Load circle data
             self.circles_info = self.load_circle_info()
             print("Scanning for first hitobject")
+            self.draw_mods()
             # Scan for the first hitcircle to appear (pauses code until it appears)
             scan_for_start(1, self.HR)
             # Start the sequence once it's detected

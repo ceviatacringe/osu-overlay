@@ -9,9 +9,9 @@ TAB_LOADING_TIME = 0.08
 BROWSER_TO_MINIMIZE = 'Chrome'
 
 # Select appropriate osu mods
-DT = False
+DT = True
 HR = False
-EZ = False
+EZ = True
 
 def main():
     # Main function to run the application loop
