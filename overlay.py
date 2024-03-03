@@ -11,11 +11,16 @@ import os
 from scan_for_start import scan_for_start
 
 class OsuOverlay:
-    def __init__(self, DT, HR, EZ):
+    def __init__(self, modstring):
         # These are the in-game mods
-        self.DT = DT
-        self.HR = HR
-        self.EZ = EZ
+        self.DT = False
+        self.HR = False
+        self.EZ = False
+        self.HT = False
+        self.HD = False
+        self.FL = False
+        # Selected mods list from get_ID_and_mods
+        self.modstring = modstring
 
         # Don't touch these, core overlay components
         self.mouse_x, self.mouse_y = 0, 0
@@ -79,19 +84,48 @@ class OsuOverlay:
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
+    def update_mods(self, mods_status):
+        # Update the mods based on the dictionary provided
+        for mod, status in mods_status.items():
+            if hasattr(self, mod):
+                setattr(self, mod, status)
+
+    def modstring_parse(self):
+        mods = {"DT": False, "HR": False, "HD": False, "FL": False, "HT": False, "EZ": False}
+        mod_list = self.modstring.split()
+        # Update mods based on their occurrences
+        for mod in mod_list:
+            if mod == "DT":
+                # Account for NC being enabled if DT is pressed twice
+                mods[mod] = not (mod_list.count(mod) % 3 == 0)
+            else:
+                mods[mod] = mod_list.count(mod) % 2 != 0
+        # Some mods disable each other, integrating logic for that
+        last_occurrences = {mod: i for i, mod in enumerate(mod_list) if mod in mods}
+        # HR vs EZ logic
+        if 'HR' in last_occurrences and 'EZ' in last_occurrences:
+            if last_occurrences['HR'] > last_occurrences['EZ']:
+                mods['HR'] = True
+                mods['EZ'] = False
+            else:
+                mods['HR'] = False
+                mods['EZ'] = True
+        # DT vs HT logic
+        if 'DT' in last_occurrences and 'HT' in last_occurrences:
+            if last_occurrences['DT'] > last_occurrences['HT']:
+                mods['DT'] = True
+                mods['HT'] = False
+            else:
+                mods['DT'] = False
+                mods['HT'] = True
+
+        self.update_mods(mods)
 
     def draw_mods(self, x_offset=35, y_offset=40, size=40, color='white', duration=2500):
         if self.canvas:
-            # Define the mods
-            modlist = ""
-            if self.DT:
-                modlist = modlist + "DT "
-            if self.HR:
-                modlist = modlist + "HR "
-            if self.EZ:
-                modlist = modlist + "EZ "
-
-            # Create a Tkinter font
+            mods = ['DT', 'HR', 'EZ', 'HT', 'HD', 'FL']
+            active_mods = [mod for mod in mods if getattr(self, mod, False)]
+            modlist = ' '.join(active_mods) + ' '
             font = tkFont.Font(size=size)
             canvas_width = self.canvas.winfo_width()
             canvas_height = self.canvas.winfo_height()
@@ -257,6 +291,9 @@ class OsuOverlay:
         # Make the window seethrough and clickthrough (overlay)
         self.set_click_through(win32gui.FindWindow(None, self.root.title()))
         self.keep_on_top()
+
+        # Parse mods
+        self.modstring_parse()
 
         # Initialize mouse position tracking for collision detection
         self.listener = MouseListener(on_move=self.mouse_move)

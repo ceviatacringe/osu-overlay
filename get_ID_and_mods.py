@@ -101,8 +101,8 @@ class GetStart:
 
     def start_hotkeys(self):
         self.clear_screen()
-        print(f"Waiting, press {self.hotkey} to select map...")
-        print("F1 to change mods.")
+        print(f"{self.hotkey.upper()} to start")
+        print("F1 to change mods\n")
         print("Make sure osu is in focus and you have your browser open.")
         while True:
             if self.check_focus():
@@ -114,5 +114,5 @@ class GetStart:
                     elif event.name == 'f4':
                         print("Starting")
                         self.get_map_macro()
-                        break
+                        return self.mods
 

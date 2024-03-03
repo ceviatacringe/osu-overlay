@@ -8,18 +8,13 @@ TAB_LOADING_TIME = 0.08
 # To enable, put in your own path, to disable, set to: None
 BROWSER_TO_MINIMIZE = 'Chrome'
 
-# Select appropriate osu mods
-DT = False
-HR = False
-EZ = False
-
 def main():
     # Main function to run the application loop
     while True:
         # Get map and mods details and prepare initialization
         start_mods_and_mapID = GetStart(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE)
-        start_mods_and_mapID.start_hotkeys()
-        overlay = OsuOverlay(DT, HR, EZ)
+        mods = start_mods_and_mapID.start_hotkeys()
+        overlay = OsuOverlay(mods)
         # Run the canvas and circle rendering script
         overlay.initialize_script()
 
