@@ -8,17 +8,17 @@ TAB_LOADING_TIME = 0.08
 # To enable, put in your own path, to disable, set to: None
 BROWSER_TO_MINIMIZE = 'Chrome'
 
-# If double time mod (osu) is enabled
+# Select appropriate osu mods
 DT = False
-# If hard rock mode (osu) is enabled
 HR = False
+EZ = False
 
 def main():
     # Main function to run the application loop
     while True:
         # Get map details and prepare initialization
         get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE)
-        overlay = OsuOverlay(DT, HR)
+        overlay = OsuOverlay(DT, HR, EZ)
         # Run the canvas and circle rendering script
         overlay.initialize_script()
 
