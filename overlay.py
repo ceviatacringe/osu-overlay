@@ -41,8 +41,11 @@ class OsuOverlay:
         style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
         new_style = style | win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
         win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, new_style)
-        # 1,2,3 = RGB, 4 = Overlay opacity       <-            1   2   3    4
-        win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 90, win32con.LWA_ALPHA)
+        # Make the overlay higher opacity for EZ, otherwise it gets confusing in-game
+        if self.EZ:
+            win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 180, win32con.LWA_ALPHA)
+        else:
+            win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 90, win32con.LWA_ALPHA)
 
 # So that it doesn't minimize when osu is interacted with
     def keep_on_top(self):
@@ -67,6 +70,8 @@ class OsuOverlay:
         if self.canvas:
             # Draw color according to the object type (slider or hitcircle)
             fill_color = 'green' if object_type == 'slider' else 'pink'
+            if self.EZ:
+                fill_color = 'green' if object_type == 'slider' else 'red'
             # Draw circled the proper size, taken from get_stats
             circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
             self.circle_objects[circle_id] = {'x': x, 'y': y}
@@ -121,7 +126,7 @@ class OsuOverlay:
 
         self.update_mods(mods)
 
-    def draw_mods(self, x_offset=35, y_offset=40, size=40, color='white', duration=2500):
+    def draw_mods(self, x_offset=35, y_offset=200, size=40, color='white', duration=2500):
         if self.canvas:
             mods = ['DT', 'HR', 'EZ', 'HT', 'HD', 'FL']
             active_mods = [mod for mod in mods if getattr(self, mod, False)]
@@ -196,6 +201,10 @@ class OsuOverlay:
         if circles_info:
             # Add 20ms to the initial delay (pixel scanning the start adds delay inaccuracy)
             initial_delay = (circles_info[0][2])+20
+            if self.EZ:
+                initial_delay -= self.circle_removal_delay
+                initial_delay += 450
+                self.circle_removal_delay = 450
             # If the map starts with a spinner the pixel scanning is delayed, this accounts for it
             if int(str(response.split("[HitObjects]")[1].split("\n")[1:-1][0]).count(",")) == 6:
                 initial_delay += 70
@@ -270,7 +279,10 @@ class OsuOverlay:
             self.reset_game()
             print("Resetting game")
             # Sometimes the map doesn't fully fade to black on resets, added pixel range to correct that
-            scan_for_start(31, self.HR)
+            if self.EZ:
+                scan_for_start(9, self.HR)
+            else:
+                scan_for_start(31, self.HR)
             print("Starting sequence")
             self.start_sequence()
         elif event.name == 'esc':
@@ -288,12 +300,12 @@ class OsuOverlay:
         self.canvas.pack(fill=tk.BOTH, expand=True)
         self.root.update()
 
+        # Parse mods
+        self.modstring_parse()
+
         # Make the window seethrough and clickthrough (overlay)
         self.set_click_through(win32gui.FindWindow(None, self.root.title()))
         self.keep_on_top()
-
-        # Parse mods
-        self.modstring_parse()
 
         # Initialize mouse position tracking for collision detection
         self.listener = MouseListener(on_move=self.mouse_move)
