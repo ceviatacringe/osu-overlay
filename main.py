@@ -1,5 +1,5 @@
 from overlay import OsuOverlay
-from get_map_ID import get_map_macro
+from get_ID_and_mods import GetStart
 
 HOTKEY = 'f4'
 TIME_TO_SLEEP = 0.03
@@ -9,15 +9,16 @@ TAB_LOADING_TIME = 0.08
 BROWSER_TO_MINIMIZE = 'Chrome'
 
 # Select appropriate osu mods
-DT = True
+DT = False
 HR = False
-EZ = True
+EZ = False
 
 def main():
     # Main function to run the application loop
     while True:
-        # Get map details and prepare initialization
-        get_map_macro(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE)
+        # Get map and mods details and prepare initialization
+        start_mods_and_mapID = GetStart(TIME_TO_SLEEP, TAB_LOADING_TIME, HOTKEY, BROWSER_TO_MINIMIZE)
+        start_mods_and_mapID.start_hotkeys()
         overlay = OsuOverlay(DT, HR, EZ)
         # Run the canvas and circle rendering script
         overlay.initialize_script()
