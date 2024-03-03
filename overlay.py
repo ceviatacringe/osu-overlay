@@ -133,7 +133,8 @@ class OsuOverlay:
         self.circle_removal_delay = self.get_stats(response)
         circles_info = [(int(int(components[0]) * 2.25 + 384), int(int(components[1]) * 2.25 + 126), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
-            initial_delay = (circles_info[0][2])
+            # Add 20ms to the initial delay (pixel scanning the start adds delay inaccuracy)
+            initial_delay = (circles_info[0][2])+20
             # If the map starts with a spinner the pixel scanning is delayed, this accounts for it
             if int(str(response.split("[HitObjects]")[1].split("\n")[1:-1][0]).count(",")) == 6:
                 initial_delay += 70
