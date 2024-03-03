@@ -53,7 +53,7 @@ class OsuOverlay:
     def draw_circle(self, x, y, object_type):
         if self.canvas:
             fill_color = 'green' if object_type == 'slider' else 'pink'
-            circle_id = self.canvas.create_oval(x - 60, y - 60, x + 60, y + 60, fill=fill_color)
+            circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
             self.circle_objects[circle_id] = {'x': x, 'y': y}
             self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
@@ -74,8 +74,11 @@ class OsuOverlay:
             if '[Difficulty]' in section:
                 lines = section.split('\n')
                 for line in lines:
+                    # Get the circle size
                     if 'CircleSize:' in line:
-                        self.circle_size = float(line.split(':')[1].strip())
+                        # Osu pixel from CS formula -> Radius in pixels = 109 - (9*CS)
+                        # This will be used in draw_circle to get an accurate size for each map
+                        self.circle_size = int(109 - (9 * float(line.split(':')[1].strip())))
                     if 'ApproachRate:' in line:
                         # Extract and return the ApproachRate value
                         AR = float(line.split(':')[1].strip())
