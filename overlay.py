@@ -22,7 +22,8 @@ class OsuOverlay:
         self.is_closing = False
         self.scheduled_tasks = []
         self.circle_removal_delay = 400 # How fast the circle will disappear after appearing this gets changed by the AR scan automatically
-
+        self.circle_size = 4
+        
 # Make a semi-transparent click-through window.
     def set_click_through(self, hwnd):
         style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
@@ -52,7 +53,7 @@ class OsuOverlay:
     def draw_circle(self, x, y, object_type):
         if self.canvas:
             fill_color = 'green' if object_type == 'slider' else 'pink'
-            circle_id = self.canvas.create_oval(x - 50, y - 50, x + 70, y + 70, fill=fill_color)
+            circle_id = self.canvas.create_oval(x - 60, y - 60, x + 60, y + 60, fill=fill_color)
             self.circle_objects[circle_id] = {'x': x, 'y': y}
             self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
@@ -67,12 +68,14 @@ class OsuOverlay:
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
 
-    def get_AR(self, text) -> int:
+    def get_stats(self, text) -> int:
         sections = text.split('\n\n')
         for section in sections:
             if '[Difficulty]' in section:
                 lines = section.split('\n')
                 for line in lines:
+                    if 'CircleSize:' in line:
+                        self.circle_size = float(line.split(':')[1].strip())
                     if 'ApproachRate:' in line:
                         # Extract and return the ApproachRate value
                         AR = float(line.split(':')[1].strip())
@@ -99,8 +102,8 @@ class OsuOverlay:
         mapID = pyperclip.paste().split("beatmaps/")[1]
         response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
         # Set the removal timing to the map approach rate
-        self.circle_removal_delay = self.get_AR(response)
-        circles_info = [(int(int(components[0]) * 2.25 + 373), int(int(components[1]) * 2.25 + 113), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
+        self.circle_removal_delay = self.get_stats(response)
+        circles_info = [(int(int(components[0]) * 2.25 + 384), int(int(components[1]) * 2.25 + 126), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
             initial_delay = (circles_info[0][2])
             # If the map starts with a spinner the pixel scanning is delayed, this accounts for it
