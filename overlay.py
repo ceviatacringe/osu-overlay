@@ -90,7 +90,10 @@ class OsuOverlay:
                 return rectangle_id
 
             if sliderend:
-                adjusted_slider_points = [(int(point[0]) * 2.25 + 384, int(point[1]) * 2.25 + 126) for point in sliderend]
+                if self.HR:
+                    adjusted_slider_points = [(int(point[0]) * 2.25 + 384, 1116 - (int(point[1]) * 2.25 + 126)) for point in sliderend]
+                else:
+                    adjusted_slider_points = [(int(point[0]) * 2.25 + 384, int(point[1]) * 2.25 + 126) for point in sliderend]
                 points_to_draw = [(x, y)] + adjusted_slider_points if len(adjusted_slider_points) > 1 else [(x, y), adjusted_slider_points[0]] if adjusted_slider_points else []
 
                 for i in range(len(points_to_draw) - 1):
