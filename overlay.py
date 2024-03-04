@@ -66,7 +66,7 @@ class OsuOverlay:
             self.canvas.delete(circle_id)
             self.circle_objects.pop(circle_id, None)
 
-    def draw_circle(self, x, y, object_type):
+    def draw_circle(self, x, y, object_type, sliderend):
         if self.canvas:
             # Draw color according to the object type (slider or hitcircle)
             fill_color = 'green' if object_type == 'slider' else 'pink'
@@ -74,6 +74,10 @@ class OsuOverlay:
                 fill_color = 'green' if object_type == 'slider' else 'red'
             # Draw circled the proper size, taken from get_stats
             circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
+            if sliderend != 0:
+                drawnsliderend = self.canvas.create_oval(int(int(sliderend[0]) * 2.25 + 384) - self.circle_size, (int(sliderend[1]) * 2.25 + 126) - self.circle_size, int(int(sliderend[0]) * 2.25 + 384) + self.circle_size, int(int(sliderend[1]) * 2.25 + 126) + self.circle_size, fill='azure3')
+                self.circle_objects[drawnsliderend] = {'x': int(sliderend[0]), 'y': int(sliderend[1])}
+                self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(drawnsliderend)))
             self.circle_objects[circle_id] = {'x': x, 'y': y}
             self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
@@ -197,7 +201,7 @@ class OsuOverlay:
         response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
         # Set the removal timing to the map approach rate
         self.circle_removal_delay = self.get_stats(response)
-        circles_info = [(int(int(components[0]) * 2.25 + 384), int(int(components[1]) * 2.25 + 126), int(components[2]), 'slider' if len(components) > 6 else 'circle') for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
+        circles_info = [(int(int(components[0]) * 2.25 + 384), int(int(components[1]) * 2.25 + 126), int(components[2]), 'slider' if len(components) > 6 else 'circle', tuple((components[5].split("|")[1].split(":")[0],components[5].split("|")[1].split(":")[1])) if len(components) > 7 else 0) for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
         if circles_info:
             # Add 20ms to the initial delay (pixel scanning the start adds delay inaccuracy)
             initial_delay = (circles_info[0][2])+20
@@ -210,16 +214,16 @@ class OsuOverlay:
                 initial_delay += 70
             # Adjust speed and HR circle inversion
             if self.DT and self.HR:
-                circles_info = [(x, 1090-y, int(delay/1.5 - (initial_delay/1.5)), object_type) for x, y, delay, object_type in circles_info]
+                circles_info = [(x, 1116-y, int(delay/1.5 - (initial_delay/1.5)), object_type, sliderend) for x, y, delay, object_type, sliderend in circles_info]
             # Adjust speed 
             elif self.DT:
-                circles_info = [(x, y, int(delay/1.5 - (initial_delay/1.5)), object_type) for x, y, delay, object_type in circles_info]
+                circles_info = [(x, y, int(delay/1.5 - (initial_delay/1.5)), object_type, sliderend) for x, y, delay, object_type, sliderend in circles_info]
             # Adjust for x-axis inversion
             elif self.HR:
-                circles_info = [(x, 1090-y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
+                circles_info = [(x, 1116-y, delay - initial_delay, object_type, sliderend) for x, y, delay, object_type, sliderend in circles_info]
             # If no mods:
             else:
-                circles_info = [(x, y, delay - initial_delay, object_type) for x, y, delay, object_type in circles_info]
+                circles_info = [(x, y, delay - initial_delay, object_type, sliderend) for x, y, delay, object_type, sliderend in circles_info]
         return circles_info
 
     # When the user restarts the map by holding "`"
@@ -235,8 +239,8 @@ class OsuOverlay:
     def start_sequence(self):
         self.clear_screen()
         print("Started")
-        for x, y, delay, object_type in self.circles_info:
-            self.scheduled_tasks.append(self.root.after(max(0, delay), lambda x=x, y=y, object_type=object_type: self.draw_circle(x, y, object_type)))
+        for x, y, delay, object_type, sliderend in self.circles_info:
+            self.scheduled_tasks.append(self.root.after(max(0, delay), lambda x=x, y=y, object_type=object_type, sliderend=sliderend: self.draw_circle(x, y, object_type, sliderend)))
 
     # Stop drawing and clear canvas, usually called by pressing escape to find a new map/quit
     def close_canvas(self):
@@ -290,6 +294,7 @@ class OsuOverlay:
                 print("Closing canvas and waiting for reinitialization")
             self.close_canvas()
             self.clear_screen()
+            
 
     def initialize_script(self):
         # Initialize canvas
