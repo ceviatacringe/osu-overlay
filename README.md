@@ -15,9 +15,12 @@ Raw input enabled for better responsiveness, but not neccessary
 ## This is a learning experiment and work in progress
 Maybe at a later date I will polish it up and upload it properly with a better tutorial and github page
 
-FL Demo
-https://github.com/ceviatacringe/osu-overlay/assets/160585624/1d9b4a18-106d-4cca-b020-67e94e8d2dd4
 
-EZ demo
-https://github.com/ceviatacringe/osu-overlay/assets/160585624/4a4ba316-00db-4113-b0b9-aa7963ee3ca6
+
+
+https://github.com/ceviatacringe/osu-overlay/assets/160585624/0bf7d432-5e3a-452c-a4ce-82e55f0924b4
+
+
+
+https://github.com/ceviatacringe/osu-overlay/assets/160585624/0d917244-6b41-4aff-b202-d3dc064b34db
 
