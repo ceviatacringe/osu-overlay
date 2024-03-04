@@ -11,6 +11,8 @@ Osu Flashlight/Hidden/EZ remover, AR changer, Fully external.
 - Hotkeyd automation
 - EZ, HR, DT, HD, FL support
 - Map restart support
+- Automatic CS and AR detection
+- Perfectly drawn circle overlays for any map
 
 ### Notes
 A work in progress osu overlay, parses beatmap files into coordinates and timings, used to render hitcircles over a semi-transparent click-through window.
