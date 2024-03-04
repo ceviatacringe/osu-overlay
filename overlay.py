@@ -68,19 +68,41 @@ class OsuOverlay:
 
     def draw_circle(self, x, y, object_type, sliderend):
         if self.canvas:
-            # Draw color according to the object type (slider or hitcircle)
             fill_color = 'green' if object_type == 'slider' else 'pink'
             if self.EZ:
                 fill_color = 'green' if object_type == 'slider' else 'red'
-            # Draw circled the proper size, taken from get_stats
-            if sliderend:
-                for sliderpoint in sliderend:
-                    drawnsliderend = self.canvas.create_oval(int(int(sliderpoint[0]) * 2.25 + 384) - self.circle_size, (int(sliderpoint[1]) * 2.25 + 126) - self.circle_size, int(int(sliderpoint[0]) * 2.25 + 384) + self.circle_size, int(int(sliderpoint[1]) * 2.25 + 126) + self.circle_size, fill='azure3')
-                    self.circle_objects[drawnsliderend] = {'x': int(sliderpoint[0]), 'y': int(sliderpoint[1])}
-                    self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda drawnsliderend=drawnsliderend: self.remove_circle(drawnsliderend)))
+
             circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
             self.circle_objects[circle_id] = {'x': x, 'y': y}
             self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
+
+            def draw_rectangle_between_circles(x1, y1, x2, y2):
+                width = self.circle_size
+                dx, dy = x2 - x1, y2 - y1
+                length = (dx ** 2 + dy ** 2) ** 0.5
+                if length == 0:
+                    length = 1
+                dx, dy = dx / length, dy / length
+                px, py = -dy * width, dx * width
+                corners = [x1 + px, y1 + py, x2 + px, y2 + py, x2 - px, y2 - py, x1 - px, y1 - py]
+                rectangle_id = self.canvas.create_polygon(corners, fill='azure3')
+                self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.canvas.delete(rectangle_id)))
+                return rectangle_id
+
+            if sliderend:
+                adjusted_slider_points = [(int(point[0]) * 2.25 + 384, int(point[1]) * 2.25 + 126) for point in sliderend]
+                points_to_draw = [(x, y)] + adjusted_slider_points if len(adjusted_slider_points) > 1 else [(x, y), adjusted_slider_points[0]] if adjusted_slider_points else []
+
+                for i in range(len(points_to_draw) - 1):
+                    x1, y1 = points_to_draw[i]
+                    x2, y2 = points_to_draw[i + 1]
+                    draw_rectangle_between_circles(x1, y1, x2, y2)
+
+                for point in adjusted_slider_points:
+                    drawn_slider_end = self.canvas.create_oval(point[0] - self.circle_size, point[1] - self.circle_size, point[0] + self.circle_size, point[1] + self.circle_size, fill='azure3', outline='azure3')
+                    self.circle_objects[drawn_slider_end] = {'x': point[0], 'y': point[1]}
+                    self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda drawn_slider_end=drawn_slider_end: self.remove_circle(drawn_slider_end)))
+
 
 # Checks for mouse collision in order to remove circles that have been hit
     def check_interaction(self):
