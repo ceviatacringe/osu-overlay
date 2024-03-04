@@ -73,11 +73,12 @@ class OsuOverlay:
             if self.EZ:
                 fill_color = 'green' if object_type == 'slider' else 'red'
             # Draw circled the proper size, taken from get_stats
+            if sliderend:
+                for sliderpoint in sliderend:
+                    drawnsliderend = self.canvas.create_oval(int(int(sliderpoint[0]) * 2.25 + 384) - self.circle_size, (int(sliderpoint[1]) * 2.25 + 126) - self.circle_size, int(int(sliderpoint[0]) * 2.25 + 384) + self.circle_size, int(int(sliderpoint[1]) * 2.25 + 126) + self.circle_size, fill='azure3')
+                    self.circle_objects[drawnsliderend] = {'x': int(sliderpoint[0]), 'y': int(sliderpoint[1])}
+                    self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda drawnsliderend=drawnsliderend: self.remove_circle(drawnsliderend)))
             circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
-            if sliderend != 0:
-                drawnsliderend = self.canvas.create_oval(int(int(sliderend[0]) * 2.25 + 384) - self.circle_size, (int(sliderend[1]) * 2.25 + 126) - self.circle_size, int(int(sliderend[0]) * 2.25 + 384) + self.circle_size, int(int(sliderend[1]) * 2.25 + 126) + self.circle_size, fill='azure3')
-                self.circle_objects[drawnsliderend] = {'x': int(sliderend[0]), 'y': int(sliderend[1])}
-                self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(drawnsliderend)))
             self.circle_objects[circle_id] = {'x': x, 'y': y}
             self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
@@ -193,15 +194,45 @@ class OsuOverlay:
                         else:
                             # Osu's max applicable AR is 11 (300ms)
                             return(300)
+    
 
-# Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
-# Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
+    def extract_slider_points(self, slider_type, slider_data):
+        points = slider_data.split('|')
+        # L = straight slider, P = curved slider
+        extracted_points = [tuple(map(int, point.split(':'))) for point in points[1:]]
+        return extracted_points
+    
+
+    def extract_info(self,components):
+        x = int(int(components[0]) * 2.25 + 384)
+        y = int(int(components[1]) * 2.25 + 126)
+        delay = int(components[2])
+        object_type = 'slider' if len(components) > 6 else 'circle'
+        slider_data = components[5]
+        if object_type == 'slider':
+            slider_type = slider_data.split('|')[0]
+            # Extract slider points based on the type.
+            if ":" in slider_data:
+                slider_points = self.extract_slider_points(slider_type, slider_data)
+            else:
+                slider_points = None
+        else:
+            slider_points = None
+        return (x, y, delay, object_type, slider_points)
+    
+
+    # Parsing beatmap info into coords and delay and putting them into an array, gets displayed over time
+    # Gets the approach rate from beatmap info, modifies existing delay to the new accurate one.
     def load_circle_info(self):
         mapID = pyperclip.paste().split("beatmaps/")[1]
         response = requests.get(f"https://osu.ppy.sh/osu/{mapID}").text
         # Set the removal timing to the map approach rate
         self.circle_removal_delay = self.get_stats(response)
-        circles_info = [(int(int(components[0]) * 2.25 + 384), int(int(components[1]) * 2.25 + 126), int(components[2]), 'slider' if len(components) > 6 else 'circle', tuple((components[5].split("|")[1].split(":")[0],components[5].split("|")[1].split(":")[1])) if len(components) > 7 else 0) for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1]) if len(components) > 2]
+        circles_info = [
+            self.extract_info(components)
+            for components in (line.split(',') for line in response.split("[HitObjects]")[1].split("\n")[1:-1])
+            if len(components) > 2
+        ]
         if circles_info:
             # Add 20ms to the initial delay (pixel scanning the start adds delay inaccuracy)
             initial_delay = (circles_info[0][2])+20
