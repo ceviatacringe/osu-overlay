@@ -30,10 +30,9 @@ Maybe at a later date I will polish it up and upload it properly with a better t
 
 
 
-
-https://github.com/ceviatacringe/osu-overlay/assets/160585624/0bf7d432-5e3a-452c-a4ce-82e55f0924b4
-
+https://github.com/ceviatacringe/osu-overlay/assets/160585624/bbe18d03-f379-4276-8672-7642ce440f47
 
 
-https://github.com/ceviatacringe/osu-overlay/assets/160585624/0d917244-6b41-4aff-b202-d3dc064b34db
+
+https://github.com/ceviatacringe/osu-overlay/assets/160585624/74f7bca2-8d21-4740-88b2-33e591b22dd7
 
