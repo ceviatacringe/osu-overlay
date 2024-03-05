@@ -35,6 +35,7 @@ class OsuOverlay:
         # Both of these will be changed based on map values automatically
         self.circle_removal_delay = 400
         self.circle_size = 4
+        self.sliderfill = 'gray18'
 
 # Make a semi-transparent click-through window.
     def set_click_through(self, hwnd):
@@ -45,7 +46,7 @@ class OsuOverlay:
         if self.EZ:
             win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 180, win32con.LWA_ALPHA)
         else:
-            win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 90, win32con.LWA_ALPHA)
+            win32gui.SetLayeredWindowAttributes(hwnd, win32api.RGB(99, 99, 99), 60, win32con.LWA_ALPHA)
 
 # So that it doesn't minimize when osu is interacted with
     def keep_on_top(self):
@@ -68,13 +69,7 @@ class OsuOverlay:
 
     def draw_circle(self, x, y, object_type, sliderend):
         if self.canvas:
-            fill_color = 'green' if object_type == 'slider' else 'pink'
-            if self.EZ:
-                fill_color = 'green' if object_type == 'slider' else 'red'
-
-            circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
-            self.circle_objects[circle_id] = {'x': x, 'y': y}
-            self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
+            fill_color = 'green' if object_type == 'slider' else 'red'
 
             def draw_rectangle_between_circles(x1, y1, x2, y2):
                 width = self.circle_size
@@ -85,7 +80,7 @@ class OsuOverlay:
                 dx, dy = dx / length, dy / length
                 px, py = -dy * width, dx * width
                 corners = [x1 + px, y1 + py, x2 + px, y2 + py, x2 - px, y2 - py, x1 - px, y1 - py]
-                rectangle_id = self.canvas.create_polygon(corners, fill='azure3')
+                rectangle_id = self.canvas.create_polygon(corners, fill=self.sliderfill)
                 self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.canvas.delete(rectangle_id)))
                 return rectangle_id
 
@@ -102,16 +97,19 @@ class OsuOverlay:
                     draw_rectangle_between_circles(x1, y1, x2, y2)
 
                 for point in adjusted_slider_points:
-                    drawn_slider_end = self.canvas.create_oval(point[0] - self.circle_size, point[1] - self.circle_size, point[0] + self.circle_size, point[1] + self.circle_size, fill='azure3', outline='azure3')
+                    drawn_slider_end = self.canvas.create_oval(point[0] - self.circle_size, point[1] - self.circle_size, point[0] + self.circle_size, point[1] + self.circle_size, fill=self.sliderfill, outline=self.sliderfill)
                     self.circle_objects[drawn_slider_end] = {'x': point[0], 'y': point[1]}
                     self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda drawn_slider_end=drawn_slider_end: self.remove_circle(drawn_slider_end)))
 
+        circle_id = self.canvas.create_oval(x - self.circle_size, y - self.circle_size, x + self.circle_size, y + self.circle_size, fill=fill_color)
+        self.circle_objects[circle_id] = {'x': x, 'y': y}
+        self.scheduled_tasks.append(self.root.after(self.circle_removal_delay, lambda: self.remove_circle(circle_id)))
 
 # Checks for mouse collision in order to remove circles that have been hit
     def check_interaction(self):
         if not self.EZ:
             to_remove = [circle_id for circle_id, info in self.circle_objects.items()
-                        if ((self.mouse_x - info['x']) ** 2 + (self.mouse_y - info['y']) ** 2) ** 0.5 < 30]
+                        if ((self.mouse_x - info['x']) ** 2 + (self.mouse_y - info['y']) ** 2) ** 0.5 < self.circle_size]
             for circle_id in to_remove:
                 self.remove_circle(circle_id)
             self.scheduled_tasks.append(self.root.after(10, self.check_interaction))
